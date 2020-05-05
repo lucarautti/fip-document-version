@@ -1,3 +1,10 @@
+# FIP Document Version
+
+Estensione sviluppata per Federazione Italiana Pallacanestro che implementa dalla Public Java API di Alfresco il metodo per ottenere il numero dell'ultima versione di un documento, dato uno specifico nodo (nodeRef).
+
+Il metodo potrà essere richiamato da WebScript o Javascript nei task del workflow.
+
+
 # Alfresco Platform JAR Module - SDK 3
 
 To run use `mvn clean install -DskipTests=true alfresco:run` or `./run.sh` and verify that it 
