@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Context crossContext="true">
-    <Environment name="solr/home"        type="java.lang.String" value="C:\\alfresco-community\\alf_data/solr" override="true"/>
-    <Environment name="solr/model/dir"   type="java.lang.String" value="C:\\alfresco-community\\alf_data/solr/alfrescoModels" override="true"/>
-    <Environment name="solr/content/dir" type="java.lang.String" value="C:\\alfresco-community\\alf_data/solr/index" override="true"/>
-
-</Context>
