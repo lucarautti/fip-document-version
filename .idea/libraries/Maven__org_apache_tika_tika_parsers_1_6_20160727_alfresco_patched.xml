@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.apache.tika:tika-parsers:1.6-20160727-alfresco-patched">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/tika/tika-parsers/1.6-20160727-alfresco-patched/tika-parsers-1.6-20160727-alfresco-patched.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/tika/tika-parsers/1.6-20160727-alfresco-patched/tika-parsers-1.6-20160727-alfresco-patched-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/tika/tika-parsers/1.6-20160727-alfresco-patched/tika-parsers-1.6-20160727-alfresco-patched-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

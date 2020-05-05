@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.alfresco:alfresco-greenmail:5.2.f">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/alfresco/alfresco-greenmail/5.2.f/alfresco-greenmail-5.2.f.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/alfresco/alfresco-greenmail/5.2.f/alfresco-greenmail-5.2.f-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/alfresco/alfresco-greenmail/5.2.f/alfresco-greenmail-5.2.f-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
