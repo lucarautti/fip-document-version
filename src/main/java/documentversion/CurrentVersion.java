@@ -27,12 +27,7 @@ public class CurrentVersion implements VersionService {
     private Behaviour afterCreateVersion;
 
     public void init() {
-        this.afterCreateVersion = new JavaBehaviour(this, "afterCreateVersion",
-                Behaviour.NotificationFrequency.TRANSACTION_COMMIT);
-
-        this.policyComponent.bindClassBehaviour(QName.createQName(
-                NamespaceService.ALFRESCO_URI, "afterCreateVersion"),
-                MaxVersionPolicy.class, this.afterCreateVersion);
+        
     }
 
     @Override
@@ -72,11 +67,7 @@ public class CurrentVersion implements VersionService {
 
     @Override
     public Version getCurrentVersion(NodeRef nodeRef) {
-        Version versione = null;
-        if (nodeRef != null) {
-            versione = this.getCurrentVersion(nodeRef);
-        }
-        return versione;
+        return this.getCurrentVersion(nodeRef);
     }
 
     @Override
