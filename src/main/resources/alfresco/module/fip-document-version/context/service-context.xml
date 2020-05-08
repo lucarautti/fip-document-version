@@ -21,6 +21,8 @@
           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
     <!-- A simple class that is initialized by Spring -->
-    <bean id="documentversion.CurrentVersion" class="documentversion.CurrentVersion" init-method="init" />
+    <bean id="documentversion.CurrentVersion"
+          class="documentversion.CurrentVersion"
+          init-method="init" />
 
 </beans>
