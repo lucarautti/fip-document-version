@@ -30,12 +30,6 @@ import org.docx4j.openpackaging.parts.SpreadsheetML.JaxbSmlPart;
 import org.docx4j.wml.ContentAccessor;
 import org.docx4j.wml.Text;
 
-/**
- * Helper class with docx4j functionalities
- * 
- * @author SIXPHERE Technologies
- * @version 1.0
- */
 public class Docx4jHelper {
 
 	private ServiceRegistry serviceRegistry;
