@@ -50,7 +50,7 @@ public class Docx4jHelper {
 		this.serviceRegistry = serviceRegistry;
 	}
 
-	protected String getNodeCurrentVersion(NodeRef versionableNode) {
+	public String getNodeCurrentVersion(NodeRef versionableNode) {
 
 		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
 		
