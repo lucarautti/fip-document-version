@@ -22,28 +22,47 @@ import org.alfresco.service.cmr.repository.StoreRef;
 import org.alfresco.service.cmr.search.ResultSet;
 import org.alfresco.service.cmr.search.SearchParameters;
 import org.alfresco.service.namespace.QName;
+import org.alfresco.service.cmr.version.Version;
+import org.alfresco.service.cmr.version.VersionHistory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
-import org.docx4j.openpackaging.packages.SpreadsheetMLPackage;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.PartName;
-import org.docx4j.openpackaging.parts.SpreadsheetML.JaxbSmlPart;
 import org.docx4j.wml.ContentAccessor;
 import org.docx4j.wml.Text;
 
 public class Docx4jHelper {
 
 	private ServiceRegistry serviceRegistry;
+	private static Log logger = LogFactory.getLog(Docx4jHelper.class);
+	private String versioneAttuale = "";
 
 	/**
-	 * Get the list of objects of a docx4j document depending of the type to
-	 * search
+	 * Get the list of objects of a docx4j document depending of the type to search
 	 * 
-	 * @param document.
-	 *            Docx4j document to get the objects
-	 * @param toSearch.
-	 *            Class to search inside the document
+	 * @param document. Docx4j document to get the objects
+	 * @param toSearch. Class to search inside the document
 	 * @return
 	 */
+
+	public void setServiceRegistry(ServiceRegistry serviceRegistry) {
+		this.serviceRegistry = serviceRegistry;
+	}
+
+	protected String getNodeCurrentVersion(NodeRef versionableNode) {
+
+		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
+		
+		if (versionHistory != null) {
+			logger.debug("Numero di versioni: " + versionHistory.getAllVersions().size());
+            logger.debug("Ultima versione: " + versionHistory.getRootVersion().getVersionLabel());
+            versioneAttuale = versionHistory.getRootVersion().getVersionLabel();
+		} else {logger.debug("Nodo non versionabile");}
+		
+		return versioneAttuale;
+	}
+
 	private static List<Object> getAllElementFromObject(Object document, Class<?> toSearch) {
 		List<Object> result = new ArrayList<Object>();
 		if (document instanceof JAXBElement)
@@ -62,15 +81,12 @@ public class Docx4jHelper {
 	}
 
 	/**
-	 * Create an copy instance of the template and map the metadata of the node
-	 * into it.
+	 * Create an copy instance of the template and map the metadata of the node into
+	 * it.
 	 * 
-	 * @param templateRef.
-	 *            NodeRef of the template
-	 * @param nodeRef.
-	 *            NodeRef of the node
-	 * @param name.
-	 *            Name of the instance
+	 * @param templateRef. NodeRef of the template
+	 * @param nodeRef.     NodeRef of the node
+	 * @param name.        Name of the instance
 	 * @return NodeRef of the instance
 	 * @throws Exception
 	 */
@@ -81,24 +97,19 @@ public class Docx4jHelper {
 		String templateExtension = getExtension(templateRef);
 
 		switch (templateExtension) {
-		case "docx":
-			printWordDocumentByMapping(instance, getMetadata(nodeRef, true));
-			return instance;
-		case "xlsx":
-			printSpreadSheetByMapping(instance, getMetadata(nodeRef, false));
-			return instance;
-		default:
-			throw new Exception("Template mimetype " + templateExtension + " is not supported.");
+			case "docx":
+				printWordDocumentByMapping(instance, getMetadata(nodeRef, true));
+				return instance;
+			default:
+				throw new Exception("Tipo di documento " + templateExtension + " non supportato.");
 		}
 	}
 
 	/**
 	 * Get default name of a new instance of the template.
 	 * 
-	 * @param nodeRef.
-	 *            NodeRef to get its name
-	 * @param templateRef.
-	 *            NodeRef of the template
+	 * @param nodeRef.     NodeRef to get its name
+	 * @param templateRef. NodeRef of the template
 	 * @return
 	 */
 	public String getDefaultName(NodeRef nodeRef, NodeRef templateRef) {
@@ -113,16 +124,16 @@ public class Docx4jHelper {
 	/**
 	 * Get NodeRef of default template, depending of type of the node.
 	 * 
-	 * @param nodeRef.
-	 *            NodeRef to get its type
+	 * @param nodeRef. NodeRef to get its type
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public NodeRef getDefaultTemplateRef(NodeRef nodeRef) throws Exception {
 		String typeName = serviceRegistry.getNodeService().getType(nodeRef).getLocalName();
 		String defaultTemplateName = typeName + "-template";
 
-		String query = "SELECT cm.cmis:objectId FROM cmis:document as cm WHERE CONTAINS(cm,'cmis:name:" + defaultTemplateName + "')";
+		String query = "SELECT cm.cmis:objectId FROM cmis:document as cm WHERE CONTAINS(cm,'cmis:name:"
+				+ defaultTemplateName + "')";
 		SearchParameters searchParameters = new SearchParameters();
 		searchParameters.addStore(StoreRef.STORE_REF_WORKSPACE_SPACESSTORE);
 		searchParameters.setQuery(query);
@@ -139,8 +150,7 @@ public class Docx4jHelper {
 	/**
 	 * Get the extension of the node depends on its mimetype.
 	 * 
-	 * @param nodeRef.
-	 *            NodeRef of the node
+	 * @param nodeRef. NodeRef of the node
 	 * @return
 	 */
 	public String getExtension(NodeRef nodeRef) {
@@ -152,10 +162,8 @@ public class Docx4jHelper {
 	/**
 	 * Get metadata properties of the node.
 	 * 
-	 * @param nodeRef.
-	 *            NodeRef to get its metadata
-	 * @param includeBruckets.
-	 *            Include ${} into properties names
+	 * @param nodeRef.         NodeRef to get its metadata
+	 * @param includeBruckets. Include ${} into properties names
 	 * @return
 	 */
 	private Map<String, String> getMetadata(NodeRef nodeRef, Boolean includeBruckets) {
@@ -171,16 +179,13 @@ public class Docx4jHelper {
 	}
 
 	/**
-	 * Get NodeRef of a copy instance of the templateRef, child of the
-	 * targetRef.
+	 * Get NodeRef of a copy instance of the templateRef, child of the targetRef.
 	 * 
-	 * @param templateRef.
-	 *            NodeRef of the template node
-	 * @param targetRef.
-	 *            NodeRef of the parent target of the instance
-	 * @param name.
-	 *            Name of the instance @return. NodeRef of the instance
+	 * @param templateRef. NodeRef of the template node
+	 * @param targetRef.   NodeRef of the parent target of the instance
+	 * @param name.        Name of the instance @return. NodeRef of the instance
 	 */
+
 	public NodeRef getTemplateInstance(NodeRef templateRef, NodeRef targetRef, String name) {
 		NodeRef instance = this.serviceRegistry.getCopyService().copy(templateRef, targetRef,
 				org.alfresco.model.ContentModel.ASSOC_CONTAINS, org.alfresco.model.ContentModel.ASSOC_ORIGINAL);
@@ -189,38 +194,10 @@ public class Docx4jHelper {
 	}
 
 	/**
-	 * Substitute mapping variables into the xlsx4j document.
-	 * 
-	 * @param nodeRef.
-	 *            NodeRef of the xlsx4j document
-	 * @param mappings.
-	 *            Map of name-value of all variables to substitute
-	 * @throws Docx4JException
-	 * @throws ContentIOException
-	 * @throws JAXBException
-	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void printSpreadSheetByMapping(NodeRef nodeRef, Map<String, String> mapping)
-			throws ContentIOException, Docx4JException, JAXBException {
-		ContentReader reader = this.serviceRegistry.getContentService().getReader(nodeRef, ContentModel.PROP_CONTENT);
-		SpreadsheetMLPackage spread = (SpreadsheetMLPackage) SpreadsheetMLPackage.load(reader.getContentInputStream());
-
-		JaxbSmlPart wsVariables = (JaxbSmlPart) spread.getParts().get(new PartName("/xl/sharedStrings.xml"));
-
-		wsVariables.variableReplace((HashMap<String, String>) mapping);
-
-		ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT,
-				true);
-		spread.save(writer.getContentOutputStream());
-	}
-
-	/**
 	 * Substitute mapping variables into the docx4j document.
 	 * 
-	 * @param nodeRef.
-	 *            NodeRef of the docx4j document
-	 * @param mappings.
-	 *            Map of name-value of all variables to substitute
+	 * @param nodeRef.  NodeRef of the docx4j document
+	 * @param mappings. Map of name-value of all variables to substitute
 	 * @throws Docx4JException
 	 * @throws ContentIOException
 	 */
@@ -242,10 +219,8 @@ public class Docx4jHelper {
 	/**
 	 * Replace all texts of a docx4j document with a mapped variable
 	 * 
-	 * @param texts.
-	 *            Texts of the document
-	 * @param mapping.
-	 *            Map of name-value of all variables to substitute
+	 * @param texts.   Texts of the document
+	 * @param mapping. Map of name-value of all variables to substitute
 	 */
 	private void replacePlaceholder(List<Object> texts, Map<String, String> mapping) {
 		for (Object text : texts) {
@@ -258,9 +233,5 @@ public class Docx4jHelper {
 				}
 			}
 		}
-	}
-
-	public void setServiceRegistry(ServiceRegistry serviceRegistry) {
-		this.serviceRegistry = serviceRegistry;
 	}
 }
