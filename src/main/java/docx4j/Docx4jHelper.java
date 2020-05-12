@@ -34,9 +34,10 @@ import org.docx4j.wml.Text;
 
 public class Docx4jHelper {
 
+	public String versioneAttuale = "";
 	private ServiceRegistry serviceRegistry;
 	private static Log logger = LogFactory.getLog(Docx4jHelper.class);
-	private String versioneAttuale = "";
+	
 
 	/**
 	 * Get the list of objects of a docx4j document depending of the type to search
@@ -50,17 +51,23 @@ public class Docx4jHelper {
 		this.serviceRegistry = serviceRegistry;
 	}
 
-	public String getNodeCurrentVersion(NodeRef versionableNode) {
+	/*
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 */
+	
+	public void getNodeCurrentVersion(NodeRef versionableNode) {
 
 		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
 		
 		if (versionHistory != null) {
 			logger.debug("Numero di versioni: " + versionHistory.getAllVersions().size());
             logger.debug("Ultima versione: " + versionHistory.getRootVersion().getVersionLabel());
-            versioneAttuale = versionHistory.getRootVersion().getVersionLabel();
+            this.versioneAttuale = versionHistory.getRootVersion().getVersionLabel();
 		} else {logger.debug("Nodo non versionabile");}
-		
-		return versioneAttuale;
 	}
 
 	private static List<Object> getAllElementFromObject(Object document, Class<?> toSearch) {
@@ -115,10 +122,7 @@ public class Docx4jHelper {
 	public String getDefaultName(NodeRef nodeRef, NodeRef templateRef) {
 		NodeService nodeService = serviceRegistry.getNodeService();
 		String nodeName = nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
-		String nodeExtension = "." + getExtension(nodeRef);
-		String templateExtension = "." + getExtension(templateRef);
-		return nodeName.replace(nodeExtension, "") + "-" + (new Date()).toString().replace(":", "-")
-				+ templateExtension;
+		return nodeName;
 	}
 
 	/**
