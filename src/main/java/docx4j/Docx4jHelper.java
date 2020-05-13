@@ -51,8 +51,6 @@ public class Docx4jHelper {
 	private static Log logger = LogFactory.getLog(Docx4jHelper.class);
 	
 	org.docx4j.wml.ObjectFactory foo = Context.getWmlObjectFactory();
-	private static final long serialVersionUID = 1L;
-
 
 	public void setServiceRegistry(ServiceRegistry serviceRegistry) {
 		this.serviceRegistry = serviceRegistry;
@@ -141,13 +139,6 @@ public class Docx4jHelper {
 		NodeService nodeService = serviceRegistry.getNodeService();
 		String nodeName = nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
 		return nodeName;
-	}
-
-	public NodeRef getTemplateInstance(NodeRef templateRef, NodeRef targetRef, String name) {
-		NodeRef instance = this.serviceRegistry.getCopyService().copy(templateRef, targetRef,
-				org.alfresco.model.ContentModel.ASSOC_CONTAINS, org.alfresco.model.ContentModel.ASSOC_ORIGINAL);
-		this.serviceRegistry.getNodeService().setProperty(instance, org.alfresco.model.ContentModel.PROP_NAME, name);
-		return instance;
 	}
 
 	
