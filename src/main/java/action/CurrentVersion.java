@@ -29,8 +29,8 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 	@Override
 	protected void executeImpl(Action action, NodeRef actionedUponNodeRef) {
 		try {
-			NodeRef templateRef = docx4jHelper.getDefaultTemplateRef(actionedUponNodeRef);
-			docx4jHelper.exportMetadata(templateRef, actionedUponNodeRef,docx4jHelper.getDefaultName(actionedUponNodeRef, templateRef));
+			
+			docx4jHelper.variableReplace(actionedUponNodeRef);
 		} catch (Exception e) {
 			e.printStackTrace();
 			((ActionImpl)action).setExecutionEndDate(new Date());

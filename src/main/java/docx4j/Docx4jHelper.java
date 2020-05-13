@@ -27,6 +27,7 @@ import org.alfresco.service.cmr.repository.NodeService;
 import org.alfresco.service.cmr.repository.StoreRef;
 import org.alfresco.service.cmr.search.ResultSet;
 import org.alfresco.service.cmr.search.SearchParameters;
+import org.alfresco.service.namespace.NamespaceService;
 import org.alfresco.service.namespace.QName;
 import org.alfresco.service.cmr.version.Version;
 import org.alfresco.service.cmr.version.VersionHistory;
@@ -87,9 +88,6 @@ public class Docx4jHelper {
 		String versioneAttuale = this.getUltimaVersione(nodeRef);
 		String dataModifica = this.getDataCorrente();
 		Docx4jHelper.searchAndReplace(texts, new HashMap<String, String>() {
-			/**
-			 * 
-			 */
 			private static final long serialVersionUID = 4561563843875288596L;
 
 			{
@@ -103,6 +101,21 @@ public class Docx4jHelper {
                 return super.get(key);
             }
 		});   
+		
+		String pdfName = getDocumentName(nodeRef);
+		
+		Map<QName, Serializable> props = new HashMap<QName, Serializable>(1);
+	    props.put(ContentModel.PROP_NAME, pdfName);
+		NodeRef newPDFnode = this.serviceRegistry.getNodeService().createNode(
+                nodeRef, 
+                ContentModel.ASSOC_CONTAINS, 
+                QName.createQName(NamespaceService.CONTENT_MODEL_1_0_URI, pdfName),
+                ContentModel.TYPE_CONTENT, 
+                props).getChildRef();
+		
+		ContentWriter pdfWriter = this.serviceRegistry.getContentService().getWriter(newPDFnode, ContentModel.PROP_CONTENT, true);
+		pdfWriter.setMimetype(MimetypeMap.MIMETYPE_PDF);
+		pdfWriter.putContent(reader);
 		
 	}
 	
