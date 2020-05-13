@@ -183,48 +183,6 @@ public class Docx4jHelper {
 
 	}
 	
-	/*
-	private void replacePlaceholder(WordprocessingMLPackage template,String name, String placeholder) {
-		
-		List<Object> texts = getAllElementFromObject(template.getMainDocumentPart(), Text.class);
-		for (Object text : texts) {
-			Text textElement = (Text) text;
-			if (textElement.getValue().equals(placeholder)) {
-				textElement.setValue(name);
-            }
-        }
-    }
-	*/
-	
-	/*
-	 * Questo metodo effettua il merge di più documenti Word
-	 * 
-	 
-	
-	private WordprocessingMLPackage mergeDocs(NodeRef parentFolder,List<String> fileList) 
-			throws Docx4JException, URISyntaxException { 
-		
-		WordprocessingMLPackage docDest=null;
-		NodeRef ref = nodeService.getChildByName(productFolder, ContentModel.ASSOC_CONTAINS, fileList.get(0));
-		if(ref==null) return null;
-		ContentReader reader=contentService.getReader(ref, ContentModel.PROP_CONTENT);
-		if(reader==null) return null;
-		docDest = WordprocessingMLPackage.load(reader.getContentInputStream());
-		if (fileList.size() == 1) return docDest;
-		else {
-			for(int i=1;i<fileList.size();i++){
-				NodeRef ref2=nodeService.getChildByName(productFolder, ContentModel.ASSOC_CONTAINS, fileList.get(i));
-				ContentReader reader2=contentService.getReader(ref2, ContentModel.PROP_CONTENT);
-				WordprocessingMLPackage docSource = WordprocessingMLPackage.load(reader2.getContentInputStream());
-				List<Object> object = docSource.getMainDocumentPart().getContent();
-				for (Object o : object)docDest.getMainDocumentPart().getContent().add(o);
-			}
-
-		}
-		return docDest;
-	}
-*/
-	
 	public static void searchAndReplace(List<Object> texts, Map<String, String> values){
 
         // -- scan all expressions  
