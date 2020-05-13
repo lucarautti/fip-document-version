@@ -1,6 +1,8 @@
 package docx4j;
 
 import java.io.Serializable;
+import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,7 +13,10 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 
 import org.alfresco.model.ContentModel;
+import org.alfresco.repo.content.MimetypeMap;
+import org.alfresco.repo.content.transform.ContentTransformer;
 import org.alfresco.service.ServiceRegistry;
+import org.alfresco.service.cmr.model.FileExistsException;
 import org.alfresco.service.cmr.repository.ContentData;
 import org.alfresco.service.cmr.repository.ContentIOException;
 import org.alfresco.service.cmr.repository.ContentReader;
@@ -26,49 +31,70 @@ import org.alfresco.service.cmr.version.Version;
 import org.alfresco.service.cmr.version.VersionHistory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.docx4j.XmlUtils;
+import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.PartName;
+import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.ContentAccessor;
 import org.docx4j.wml.Text;
 
 public class Docx4jHelper {
 
-	public String versioneAttuale = "";
+	
 	private ServiceRegistry serviceRegistry;
 	private static Log logger = LogFactory.getLog(Docx4jHelper.class);
 	
+	org.docx4j.wml.ObjectFactory foo = Context.getWmlObjectFactory();
 
-	/**
-	 * Get the list of objects of a docx4j document depending of the type to search
-	 * 
-	 * @param document. Docx4j document to get the objects
-	 * @param toSearch. Class to search inside the document
-	 * @return
-	 */
 
 	public void setServiceRegistry(ServiceRegistry serviceRegistry) {
 		this.serviceRegistry = serviceRegistry;
 	}
-
-	/*
-	 * 
-	 * 
-	 * 
-	 * 
-	 * 
-	 */
 	
-	public void getNodeCurrentVersion(NodeRef versionableNode) {
+	public String getUltimaVersione(NodeRef versionableNode) {
 
+		String versione ="";
 		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
 		
 		if (versionHistory != null) {
 			logger.debug("Numero di versioni: " + versionHistory.getAllVersions().size());
             logger.debug("Ultima versione: " + versionHistory.getRootVersion().getVersionLabel());
-            this.versioneAttuale = versionHistory.getRootVersion().getVersionLabel();
+            versione = versionHistory.getRootVersion().getVersionLabel();
 		} else {logger.debug("Nodo non versionabile");}
+		return versione;
 	}
+	
+	public String getDataCorrente() {
+		
+		Date date = new Date();  
+	    SimpleDateFormat formatter = new SimpleDateFormat("dd MMMM yyyy");  
+	    String data = formatter.format(date);
+		return data;
+	}
+	
+	
+	public void variableReplace(NodeRef nodeRef) {
+		
+		ContentReader reader = this.serviceRegistry.getContentService().getReader(nodeRef, ContentModel.PROP_CONTENT);
+		WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(reader.getContentInputStream());
+		MainDocumentPart documentPart = wordMLPackage.getMainDocumentPart();
+		org.docx4j.model.datastorage.migration.VariablePrepare.prepare(wordMLPackage);
+		HashMap<String, String> mappings = new HashMap<String, String>();
+		mappings.put("versioneAttuale", (this.getUltimaVersione(nodeRef)));
+		mappings.put("dataModifica", (this.getDataCorrente()));
+		documentPart.variableReplace(mappings);
+		if (save) {
+			SaveToZipFile saver = new SaveToZipFile(wordMLPackage);
+			saver.save(outputfilepath);
+		} else {
+			System.out.println(XmlUtils.marshaltoString(documentPart.getJaxbElement(), true,
+					true));
+		}
+		
+	}
+	
 
 	private static List<Object> getAllElementFromObject(Object document, Class<?> toSearch) {
 		List<Object> result = new ArrayList<Object>();
@@ -82,94 +108,19 @@ public class Docx4jHelper {
 			for (Object child : children) {
 				result.addAll(getAllElementFromObject(child, toSearch));
 			}
-
 		}
 		return result;
 	}
 
-	/**
-	 * Create an copy instance of the template and map the metadata of the node into
-	 * it.
-	 * 
-	 * @param templateRef. NodeRef of the template
-	 * @param nodeRef.     NodeRef of the node
-	 * @param name.        Name of the instance
-	 * @return NodeRef of the instance
-	 * @throws Exception
-	 */
-	public NodeRef exportMetadata(NodeRef templateRef, NodeRef nodeRef, String name) throws Exception {
-		NodeRef instance = getTemplateInstance(templateRef,
-				this.serviceRegistry.getNodeService().getPrimaryParent(nodeRef).getParentRef(), name);
-
-		String templateExtension = getExtension(templateRef);
-
-		switch (templateExtension) {
-			case "docx":
-				printWordDocumentByMapping(instance, getMetadata(nodeRef, true));
-				return instance;
-			default:
-				throw new Exception("Tipo di documento " + templateExtension + " non supportato.");
-		}
-	}
-
-	/**
-	 * Get default name of a new instance of the template.
-	 * 
-	 * @param nodeRef.     NodeRef to get its name
-	 * @param templateRef. NodeRef of the template
-	 * @return
-	 */
-	public String getDefaultName(NodeRef nodeRef, NodeRef templateRef) {
+	
+	public String getDefaultName(NodeRef nodeRef) {
 		NodeService nodeService = serviceRegistry.getNodeService();
 		String nodeName = nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
 		return nodeName;
 	}
 
-	/**
-	 * Get NodeRef of default template, depending of type of the node.
-	 * 
-	 * @param nodeRef. NodeRef to get its type
-	 * @return
-	 * @throws Exception
-	 */
-	public NodeRef getDefaultTemplateRef(NodeRef nodeRef) throws Exception {
-		String typeName = serviceRegistry.getNodeService().getType(nodeRef).getLocalName();
-		String defaultTemplateName = typeName + "-template";
 
-		String query = "SELECT cm.cmis:objectId FROM cmis:document as cm WHERE CONTAINS(cm,'cmis:name:"
-				+ defaultTemplateName + "')";
-		SearchParameters searchParameters = new SearchParameters();
-		searchParameters.addStore(StoreRef.STORE_REF_WORKSPACE_SPACESSTORE);
-		searchParameters.setQuery(query);
-		searchParameters.setLanguage("cmis-alfresco");
-		ResultSet templates = serviceRegistry.getSearchService().query(searchParameters);
-
-		if (templates.length() > 0) {
-			return templates.getNodeRef(0);
-		} else {
-			throw new Exception("No templates found named as " + defaultTemplateName);
-		}
-	}
-
-	/**
-	 * Get the extension of the node depends on its mimetype.
-	 * 
-	 * @param nodeRef. NodeRef of the node
-	 * @return
-	 */
-	public String getExtension(NodeRef nodeRef) {
-		ContentData contentData = (ContentData) this.serviceRegistry.getNodeService().getProperty(nodeRef,
-				ContentModel.PROP_CONTENT);
-		return this.serviceRegistry.getMimetypeService().getExtension(contentData.getMimetype());
-	}
-
-	/**
-	 * Get metadata properties of the node.
-	 * 
-	 * @param nodeRef.         NodeRef to get its metadata
-	 * @param includeBruckets. Include ${} into properties names
-	 * @return
-	 */
+	
 	private Map<String, String> getMetadata(NodeRef nodeRef, Boolean includeBruckets) {
 		HashMap<String, String> mapping = new HashMap<String, String>();
 		NodeService nodeService = serviceRegistry.getNodeService();
@@ -181,14 +132,6 @@ public class Docx4jHelper {
 		}
 		return mapping;
 	}
-
-	/**
-	 * Get NodeRef of a copy instance of the templateRef, child of the targetRef.
-	 * 
-	 * @param templateRef. NodeRef of the template node
-	 * @param targetRef.   NodeRef of the parent target of the instance
-	 * @param name.        Name of the instance @return. NodeRef of the instance
-	 */
 
 	public NodeRef getTemplateInstance(NodeRef templateRef, NodeRef targetRef, String name) {
 		NodeRef instance = this.serviceRegistry.getCopyService().copy(templateRef, targetRef,
@@ -206,10 +149,9 @@ public class Docx4jHelper {
 	 * @throws ContentIOException
 	 */
 	@SuppressWarnings("deprecation")
-	public void printWordDocumentByMapping(NodeRef nodeRef, Map<String, String> mapping)
-			throws ContentIOException, Docx4JException {
+	public void printWordDocumentByMapping(NodeRef nodeRef, Map<String, String> mapping) throws ContentIOException, Docx4JException {
+		
 		ContentReader reader = this.serviceRegistry.getContentService().getReader(nodeRef, ContentModel.PROP_CONTENT);
-
 		WordprocessingMLPackage document = WordprocessingMLPackage.load(reader.getContentInputStream());
 		List<Object> texts = getAllElementFromObject(document.getMainDocumentPart(), Text.class);
 		texts.addAll(getAllElementFromObject(document.getHeaderFooterPolicy().getDefaultHeader(), Text.class));
@@ -220,12 +162,8 @@ public class Docx4jHelper {
 		document.save(writer.getContentOutputStream());
 	}
 
-	/**
-	 * Replace all texts of a docx4j document with a mapped variable
-	 * 
-	 * @param texts.   Texts of the document
-	 * @param mapping. Map of name-value of all variables to substitute
-	 */
+	/*
+	 
 	private void replacePlaceholder(List<Object> texts, Map<String, String> mapping) {
 		for (Object text : texts) {
 			Text textElement = (Text) text;
@@ -238,4 +176,100 @@ public class Docx4jHelper {
 			}
 		}
 	}
+	*/
+	
+	private void replacePlaceholder(WordprocessingMLPackage template,String name, String placeholder) {
+		
+		List<Object> texts = getAllElementFromObject(template.getMainDocumentPart(), Text.class);
+		for (Object text : texts) {
+			Text textElement = (Text) text;
+			if (textElement.getValue().equals(placeholder)) {
+				textElement.setValue(name);
+            }
+        }
+    }
+	
+	
+	/*
+	 * Questo metodo effettua il merge di più documenti Word
+	 * 
+	 
+	
+	private WordprocessingMLPackage mergeDocs(NodeRef parentFolder,List<String> fileList) 
+			throws Docx4JException, URISyntaxException { 
+		
+		WordprocessingMLPackage docDest=null;
+		NodeRef ref = nodeService.getChildByName(productFolder, ContentModel.ASSOC_CONTAINS, fileList.get(0));
+		if(ref==null) return null;
+		ContentReader reader=contentService.getReader(ref, ContentModel.PROP_CONTENT);
+		if(reader==null) return null;
+		docDest = WordprocessingMLPackage.load(reader.getContentInputStream());
+		if (fileList.size() == 1) return docDest;
+		else {
+			for(int i=1;i<fileList.size();i++){
+				NodeRef ref2=nodeService.getChildByName(productFolder, ContentModel.ASSOC_CONTAINS, fileList.get(i));
+				ContentReader reader2=contentService.getReader(ref2, ContentModel.PROP_CONTENT);
+				WordprocessingMLPackage docSource = WordprocessingMLPackage.load(reader2.getContentInputStream());
+				List<Object> object = docSource.getMainDocumentPart().getContent();
+				for (Object o : object)docDest.getMainDocumentPart().getContent().add(o);
+			}
+
+		}
+		return docDest;
+	}
+	
+	
+	
+	
+	 
+	 * Questo metodo trasforma il documento Word docx in PDF
+	 * 
+	 
+	
+	private NodeRef saveWordToPDF(NodeRef parentFolder,String fileName,WordprocessingMLPackage wordMLPackage)
+	{
+
+	NodeRef ref = fileFolderService.create(parentFolder, fileName+".pdf", ContentModel.TYPE_CONTENT).getNodeRef();
+	ContentWriter cw = contentService.getWriter(ref, ContentModel.PROP_CONTENT, true);
+	cw.setMimetype(MimetypeMap.MIMETYPE_WORD);
+	try {
+
+	wordMLPackage.save(cw.getContentOutputStream());
+	return convertWordToPDF (ref);
+
+	} catch (ContentIOException e) {
+
+	e.printStackTrace();
+
+	} catch (Docx4JException e) {
+
+	e.printStackTrace();
+
+	} 
+	return null;
+
+	}
+
+	private NodeRef convertWordToPDF(NodeRef nodeRef) {
+
+		if (contentService.getReader(nodeRef, ContentModel.PROP_CONTENT) == null) return null;
+
+		try {
+			ContentReader cr = contentService.getReader(nodeRef, ContentModel.PROP_CONTENT);
+			ContentWriter cw = contentService.getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
+			cw.setMimetype(MimetypeMap.MIMETYPE_PDF);
+			if (!cr.getMimetype().equals(MimetypeMap.MIMETYPE_PDF)){
+				ContentTransformer ct = contentService.getTransformer(cr.getMimetype(), MimetypeMap.MIMETYPE_PDF);
+				if(ct!=null){
+					ct.transform(cr, cw);
+					return nodeRef;
+				}
+			}
+		}
+		catch (FileExistsException e1)e1.printStackTrace();
+		catch(Exception e) e.printStackTrace();
+		return null;
+
+	}
+	*/
 }

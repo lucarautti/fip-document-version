@@ -30,13 +30,12 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 	protected void executeImpl(Action action, NodeRef actionedUponNodeRef) {
 		try {
 			NodeRef templateRef = docx4jHelper.getDefaultTemplateRef(actionedUponNodeRef);
-			docx4jHelper.exportMetadata(templateRef, actionedUponNodeRef,
-					docx4jHelper.getDefaultName(actionedUponNodeRef, templateRef));
+			docx4jHelper.exportMetadata(templateRef, actionedUponNodeRef,docx4jHelper.getDefaultName(actionedUponNodeRef, templateRef));
 		} catch (Exception e) {
 			e.printStackTrace();
 			((ActionImpl)action).setExecutionEndDate(new Date());
 			((ActionImpl)action).setExecutionStatus(ActionStatus.Failed);
-			((ActionImpl)action).setExecutionFailureMessage("There seems to be a problem. " + e.getMessage());
+			((ActionImpl)action).setExecutionFailureMessage("Si è verificato un problema. " + e.getMessage());
 			throw new RuntimeException(e);
 		}
 	}
