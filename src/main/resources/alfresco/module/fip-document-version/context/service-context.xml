@@ -20,17 +20,11 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
-    <!-- HELPERS -->
-	<bean id="Docx4jHelper" class="it.fip.docx4j.Docx4jHelper" >
+	<bean id="print-current-version" 
+			class="it.fip.CurrentVersion" 
+			parent="action-executer">
 		<property name="serviceRegistry">
 			<ref bean="ServiceRegistry" />
-		</property>
-	</bean>
-	
-	<!-- ACTIONS -->
-	<bean id="print-current-version" class="it.fip.action.CurrentVersion" parent="action-executer">
-		<property name="docx4jHelper">
-			<ref bean="Docx4jHelper" />
 		</property>
 	</bean>
 
