@@ -132,7 +132,7 @@
                 </executions>
                 <configuration>
                     <!-- We need the flat file H2 database to run the Repo -->
-                    <enableH2>false</enableH2>
+                    <enableH2>true</enableH2>
                     <!-- This is a platform extension JAR, so we need the platform webapp (alfresco.war) -->
                     <enablePlatform>true</enablePlatform>
                     <!-- Enable Solr so we can use search, our Repo extension probably need search -->
@@ -225,7 +225,7 @@
                 the layout of your AMP. The end result is that Maven will produce both a JAR file and an AMP with your
                 module.
             -->
-            <!--
+            
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.6</version>
@@ -250,7 +250,6 @@
                     </dependency>
                 </dependencies>
             </plugin>
-            -->
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
