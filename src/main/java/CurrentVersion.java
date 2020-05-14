@@ -1,5 +1,14 @@
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.io.Serializable;
+import java.net.URISyntaxException;
+import java.text.SimpleDateFormat;
+
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
 
 import org.alfresco.repo.action.ActionImpl;
 import org.alfresco.repo.action.executer.ActionExecuterAbstractBase;
@@ -7,18 +16,6 @@ import org.alfresco.service.cmr.action.Action;
 import org.alfresco.service.cmr.action.ActionStatus;
 import org.alfresco.service.cmr.action.ParameterDefinition;
 import org.alfresco.service.cmr.repository.NodeRef;
-import java.io.Serializable;
-import java.net.URISyntaxException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-
 import org.alfresco.model.ContentModel;
 import org.alfresco.repo.content.MimetypeMap;
 import org.alfresco.repo.content.transform.ContentTransformer;
@@ -38,8 +35,10 @@ import org.alfresco.service.namespace.NamespaceService;
 import org.alfresco.service.namespace.QName;
 import org.alfresco.service.cmr.version.Version;
 import org.alfresco.service.cmr.version.VersionHistory;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.docx4j.XmlUtils;
 import org.docx4j.jaxb.Context;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -56,10 +55,18 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 	private ContentService contentService;
 	private static Log logger = LogFactory.getLog(CurrentVersion.class);
 	
-	org.docx4j.wml.ObjectFactory foo = Context.getWmlObjectFactory();
+	// org.docx4j.wml.ObjectFactory foo = Context.getWmlObjectFactory();
 
 	public void setServiceRegistry(ServiceRegistry serviceRegistry) {
 		this.serviceRegistry = serviceRegistry;
+	}
+	
+	public void setFileFolderService(FileFolderService fileFolderService) {
+		this.fileFolderService = fileFolderService;
+	}
+	
+	public void setContentService(ContentService contentService) {
+		this.contentService = contentService;
 	}
 	
 
