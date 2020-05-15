@@ -135,7 +135,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
             }
 		});   
 		
-		String pdfName = getDocumentName(nodeRef);
+		String pdfName = getDocumentName(nodeRef)+".pdf";
 		
 		Map<QName, Serializable> props = new HashMap<QName, Serializable>(1);
 	    props.put(ContentModel.PROP_NAME, pdfName);
@@ -178,8 +178,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 
 	
 	/*
-	 * * Questo metodo trasforma il documento Word docx in PDF
-	 */
+	 
 	  
 	private NodeRef saveWordToPDF(NodeRef parentFolder,String fileName,WordprocessingMLPackage wordMLPackage) {
 
@@ -217,7 +216,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		return null;
 
 	}
-	
+	*/
 	public void searchAndReplace(List<Object> texts, Map<String, String> values){
 
         // -- scan all expressions  
