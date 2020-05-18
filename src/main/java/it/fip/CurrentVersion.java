@@ -120,7 +120,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		List<Object> texts = getAllElementFromObject(wordMLPackage.getMainDocumentPart(), Text.class);
 		String versioneAttuale = this.getUltimaVersione(nodeRef);
 		String dataModifica = this.getDataCorrente();
-		this.searchAndReplace(texts, new HashMap<String, String>(1) {
+		this.searchAndReplace(texts, new HashMap<String, String>() {
 			private static final long serialVersionUID = -5155037707516303956L;
 
 			{
@@ -135,20 +135,24 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
             }
 		});   
 		
-		String pdfName = getDocumentName(nodeRef)+".pdf";
+		String tempDocx = getDocumentName(nodeRef)+"-temp.docx";
 		
 		Map<QName, Serializable> props = new HashMap<QName, Serializable>(1);
-	    props.put(ContentModel.PROP_NAME, pdfName);
-		NodeRef newPDFnode = this.serviceRegistry.getNodeService().createNode(
+	    props.put(ContentModel.PROP_NAME, tempDocx);
+		NodeRef tempDocxNode = this.serviceRegistry.getNodeService().createNode(
                 nodeRef, 
                 ContentModel.ASSOC_CONTAINS, 
-                QName.createQName(NamespaceService.CONTENT_MODEL_1_0_URI, pdfName),
+                QName.createQName(NamespaceService.CONTENT_MODEL_1_0_URI, tempDocx),
                 ContentModel.TYPE_CONTENT, 
                 props).getChildRef();
 		
-		ContentWriter pdfWriter = this.serviceRegistry.getContentService().getWriter(newPDFnode, ContentModel.PROP_CONTENT, true);
-		pdfWriter.setMimetype(MimetypeMap.MIMETYPE_PDF);
-		pdfWriter.putContent(reader);
+		ContentWriter tempWriter = this.serviceRegistry.getContentService().getWriter(tempDocxNode, ContentModel.PROP_CONTENT, true);
+		tempWriter.setMimetype(MimetypeMap.MIMETYPE_WORD);
+		try {
+			wordMLPackage.save(tempWriter.getContentOutputStream());	
+		}
+		catch (ContentIOException e) {e.printStackTrace();} 
+		catch (Docx4JException e) {e.printStackTrace();}
 		
 	}
 	
