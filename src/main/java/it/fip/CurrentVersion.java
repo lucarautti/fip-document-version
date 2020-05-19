@@ -1,6 +1,5 @@
 package it.fip;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.HashMap;
@@ -47,10 +46,10 @@ import org.docx4j.wml.Text;
 public class CurrentVersion extends ActionExecuterAbstractBase {
 
 	private ServiceRegistry serviceRegistry;	
-	private static Log logger = LogFactory.getLog(CurrentVersion.class);
+	private static final Log logger = LogFactory.getLog(CurrentVersion.class);
 
 	public void setServiceRegistry(ServiceRegistry serviceRegistry) {
-		this.serviceRegistry = serviceRegistry;
+	    this.serviceRegistry = serviceRegistry;
 	}
 	
 	@Override
@@ -61,7 +60,6 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 	@Override
 	protected void executeImpl(Action action, NodeRef actionedUponNodeRef) {
 		try {
-			
 			this.variableReplace(actionedUponNodeRef);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -76,7 +74,6 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 
 		String versione ="";
 		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
-		
 		if (versionHistory != null) {
 			logger.debug("Numero di versioni: " + versionHistory.getAllVersions().size());
             logger.debug("Ultima versione: " + versionHistory.getRootVersion().getVersionLabel());
@@ -84,58 +81,44 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		} else {logger.debug("Nodo non versionabile");}
 		return versione;
 	}
-	
 
-	public String getDataCorrente() {
+	public void variableReplace(NodeRef nodeRef) throws ContentIOException, Docx4JException {
+		try {
+            ContentReader reader = this.serviceRegistry.getContentService().getReader(nodeRef, ContentModel.PROP_CONTENT);
+            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(reader.getContentInputStream());
+            //MainDocumentPart documentPart = wordMLPackage.getMainDocumentPart();
+            String versioneAttuale = this.getUltimaVersione(nodeRef);
+            List<Object> texts = getAllElementFromObject(wordMLPackage.getMainDocumentPart(), Text.class);
+            searchAndReplace(texts, new HashMap<String, String>() {
+                private static final long serialVersionUID = -3834567736069978880L;
+                {
+                    this.put("${versioneAttuale}", versioneAttuale);
+                }
+                @Override
+                public String get(Object key) {
+                    // TODO Auto-generated method stub
+                    return super.get(key);
+                }
+            });
+            /*
+             * List<Object> texts = getAllElementFromObject(documentPart, Text.class);
+            HashMap<String, String> mapping = new HashMap<String, String>();
+            mapping.put("versioneAttuale", versioneAttuale);
+            logger.debug("Ultima versione: " + versioneAttuale);
+            mapping.put("dataModifica", dataModifica);
+            wordMLPackage.getMainDocumentPart().variableReplace(mapping);
+            */
+            ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
+            wordMLPackage.save(writer.getContentOutputStream());
+        }
+		catch (ContentIOException | Docx4JException | JAXBException e1) {
+				e1.printStackTrace();} 
 		
-		Date date = new Date();  
-	    SimpleDateFormat formatter = new SimpleDateFormat("dd MMMM yyyy");  
-	    String data = formatter.format(date);
-		return data;
-	}
-
-	public void variableReplace(NodeRef nodeRef) throws ContentIOException, Docx4JException, JAXBException {
-		
-		ContentReader reader = this.serviceRegistry.getContentService().getReader(nodeRef, ContentModel.PROP_CONTENT);
-		WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(reader.getContentInputStream());
-		//MainDocumentPart documentPart = wordMLPackage.getMainDocumentPart();
-		String dataModifica = this.getDataCorrente();
-		String versioneAttuale = this.getUltimaVersione(nodeRef);
-		List<Object> texts = getAllElementFromObject(wordMLPackage.getMainDocumentPart(), Text.class);
-        searchAndReplace(texts, new HashMap<String, String>(){
-			private static final long serialVersionUID = -3834567736069978880L;
-			{
-                this.put("${versioneAttuale}", versioneAttuale);
-                this.put("${dataModifica}", dataModifica);
-            }
-            @Override
-            public String get(Object key) {
-                // TODO Auto-generated method stub
-                return super.get(key);
-            }
-        });
-		/*
-		 * List<Object> texts = getAllElementFromObject(documentPart, Text.class);
-		 
-		texts.addAll(getAllElementFromObject(wordMLPackage.getHeaderFooterPolicy().getDefaultHeader(), Text.class));
-		
-		HashMap<String, String> mapping = new HashMap<String, String>();
-		
-		mapping.put("versioneAttuale", versioneAttuale);
-		logger.debug("Ultima versione: " + versioneAttuale);
-		mapping.put("dataModifica", dataModifica);
-		wordMLPackage.getMainDocumentPart().variableReplace(mapping); 
-		*/
-		ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
-		wordMLPackage.save(writer.getContentOutputStream());
-	}
+    }
 	
-	
-	
-
-	private static List<Object> getAllElementFromObject(Object obj,
-            Class<?> toSearch) {
-        List<Object> result = new ArrayList<Object>();
+	private static List<Object> getAllElementFromObject(Object obj,Class<?> toSearch)
+				throws JAXBException {
+        List<Object> result = new ArrayList<>();
         if (obj instanceof JAXBElement)
             obj = ((JAXBElement<?>) obj).getValue();
 
@@ -154,8 +137,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 	
 	public String getDocumentName(NodeRef nodeRef) {
 		NodeService nodeService = serviceRegistry.getNodeService();
-		String nodeName = nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
-		return nodeName;
+        return nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
 	}
 
 	public static void searchAndReplace(List<Object> texts, Map<String, String> values){
@@ -171,14 +153,14 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
         int mode = PASS;
 
         // to nullify
-        List<int[]> toNullify = new ArrayList<int[]>();
+        List<int[]> toNullify = new ArrayList<>();
         int[] currentNullifyProps = new int[4];
 
         // Do scan of els and immediately insert value
         for(int i = 0; i<texts.size(); i++){
             Object text = texts.get(i);
             Text textElement = (Text) text;
-            String newVal = "";
+            StringBuilder newVal = new StringBuilder();
             String v = textElement.getValue();
 //          System.out.println("text: "+v);
             StringBuilder textSofar = new StringBuilder();
@@ -214,8 +196,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
                         mode=PASS;
                         sb.append(c);
                         els.add(sb.toString());
-                        newVal +=textSofar.toString()
-                                +(null==values.get(sb.toString())?sb.toString():values.get(sb.toString()));
+                        newVal.append(textSofar.toString()).append(null == values.get(sb.toString()) ? sb.toString() : values.get(sb.toString()));
                         textSofar = new StringBuilder();
                         currentNullifyProps[2]=i;
                         currentNullifyProps[3]=col+extra;
@@ -237,8 +218,8 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
                 }
                 }
             }
-            newVal +=textSofar.toString();
-            textElement.setValue(newVal);
+            newVal.append(textSofar.toString());
+            textElement.setValue(newVal.toString());
         }
 
         // remove original expressions
