@@ -1,51 +1,53 @@
 package it.fip;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.ArrayList;
-import java.io.Serializable;
-import java.text.SimpleDateFormat;
 
-import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.JAXBElement;
 
 import org.alfresco.repo.action.ActionImpl;
+import org.alfresco.model.ContentModel;
 import org.alfresco.repo.action.executer.ActionExecuterAbstractBase;
 import org.alfresco.service.cmr.action.Action;
 import org.alfresco.service.cmr.action.ActionStatus;
 import org.alfresco.service.cmr.action.ParameterDefinition;
 import org.alfresco.service.cmr.repository.NodeRef;
-import org.alfresco.model.ContentModel;
-import org.alfresco.repo.content.MimetypeMap;
 import org.alfresco.service.ServiceRegistry;
 import org.alfresco.service.cmr.repository.ContentIOException;
 import org.alfresco.service.cmr.repository.ContentReader;
 import org.alfresco.service.cmr.repository.ContentWriter;
 import org.alfresco.service.cmr.repository.NodeService;
-import org.alfresco.service.namespace.NamespaceService;
-import org.alfresco.service.namespace.QName;
 import org.alfresco.service.cmr.version.VersionHistory;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-
-import org.docx4j.model.datastorage.migration.VariablePrepare;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.ContentAccessor;
 import org.docx4j.wml.Text;
 
+/*
+ * Code below is an implementation of different parts, adapted to our specific case. 
+ * Starting from 6phere project on Github, that you can find here:
+ * https://github.com/6phere/alf-docx4j
+ * 
+ * Instead of the standard docx4j Variable Replace there's a method from stackoverflow:
+ * https://stackoverflow.com/questions/20484722/docx4j-how-to-replace-placeholder-with-value
+ * Thanks demotics2002
+ * 
+ * Other things from Alfresco SDK documentation and docx4j source code.
+ */
+
 public class CurrentVersion extends ActionExecuterAbstractBase {
 
-	private ServiceRegistry serviceRegistry;
-	
+	private ServiceRegistry serviceRegistry;	
 	private static Log logger = LogFactory.getLog(CurrentVersion.class);
-	
-	// org.docx4j.wml.ObjectFactory foo = Context.getWmlObjectFactory();
 
 	public void setServiceRegistry(ServiceRegistry serviceRegistry) {
 		this.serviceRegistry = serviceRegistry;
@@ -83,7 +85,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		return versione;
 	}
 	
-	
+
 	public String getDataCorrente() {
 		
 		Date date = new Date();  
@@ -91,58 +93,64 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 	    String data = formatter.format(date);
 		return data;
 	}
-	
-	
-	public void variableReplace(NodeRef nodeRef) throws ContentIOException, Docx4JException {
+
+	public void variableReplace(NodeRef nodeRef) throws ContentIOException, Docx4JException, JAXBException {
 		
 		ContentReader reader = this.serviceRegistry.getContentService().getReader(nodeRef, ContentModel.PROP_CONTENT);
-		
 		WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(reader.getContentInputStream());
 		//MainDocumentPart documentPart = wordMLPackage.getMainDocumentPart();
-		//List<Object> texts = getAllElementFromObject(documentPart, Text.class);
 		String dataModifica = this.getDataCorrente();
 		String versioneAttuale = this.getUltimaVersione(nodeRef);
-		java.util.HashMap<String, String> mapping = new java.util.HashMap<String, String>();
-		try {
-			VariablePrepare.prepare(wordMLPackage);
-		} catch (Exception e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		mapping.put("versioneAttuale", versioneAttuale);
-		mapping.put("dataModifica", dataModifica);
-		try {
-			wordMLPackage.getMainDocumentPart().variableReplace(mapping);
-		} catch (JAXBException | Docx4JException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}   
-		ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
-		try {
-			wordMLPackage.save(writer.getContentOutputStream());
-		}
-		catch (ContentIOException e) {e.printStackTrace();} 
-		catch (Docx4JException e) {e.printStackTrace();}
+		List<Object> texts = getAllElementFromObject(wordMLPackage.getMainDocumentPart(), Text.class);
+        searchAndReplace(texts, new HashMap<String, String>(){
+			private static final long serialVersionUID = -3834567736069978880L;
+			{
+                this.put("${versioneAttuale}", versioneAttuale);
+                this.put("${dataModifica}", dataModifica);
+            }
+            @Override
+            public String get(Object key) {
+                // TODO Auto-generated method stub
+                return super.get(key);
+            }
+        });
+		/*
+		 * List<Object> texts = getAllElementFromObject(documentPart, Text.class);
+		 
+		texts.addAll(getAllElementFromObject(wordMLPackage.getHeaderFooterPolicy().getDefaultHeader(), Text.class));
 		
+		HashMap<String, String> mapping = new HashMap<String, String>();
+		
+		mapping.put("versioneAttuale", versioneAttuale);
+		logger.debug("Ultima versione: " + versioneAttuale);
+		mapping.put("dataModifica", dataModifica);
+		wordMLPackage.getMainDocumentPart().variableReplace(mapping); 
+		*/
+		ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
+		wordMLPackage.save(writer.getContentOutputStream());
 	}
 	
-/*
-	private static List<Object> getAllElementFromObject(Object document, Class<?> toSearch) {
-		List<Object> result = new ArrayList<Object>();
-		if (document instanceof JAXBElement)
-			document = ((JAXBElement<?>) document).getValue();
+	
+	
 
-		if (document.getClass().equals(toSearch))
-			result.add(document);
-		else if (document instanceof ContentAccessor) {
-			List<?> children = ((ContentAccessor) document).getContent();
-			for (Object child : children) {
-				result.addAll(getAllElementFromObject(child, toSearch));
-			}
-		}
-		return result;
-	}
-*/
+	private static List<Object> getAllElementFromObject(Object obj,
+            Class<?> toSearch) {
+        List<Object> result = new ArrayList<Object>();
+        if (obj instanceof JAXBElement)
+            obj = ((JAXBElement<?>) obj).getValue();
+
+        if (obj.getClass().equals(toSearch))
+            result.add(obj);
+        else if (obj instanceof ContentAccessor) {
+            List<?> children = ((ContentAccessor) obj).getContent();
+            for (Object child : children) {
+                result.addAll(getAllElementFromObject(child, toSearch));
+            }
+
+        }
+        return result;
+    }
+
 	
 	public String getDocumentName(NodeRef nodeRef) {
 		NodeService nodeService = serviceRegistry.getNodeService();
@@ -150,9 +158,138 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		return nodeName;
 	}
 
-	
+	public static void searchAndReplace(List<Object> texts, Map<String, String> values){
+
+        // -- scan all expressions  
+        // Will later contain all the expressions used though not used at the moment
+        List<String> els = new ArrayList<String>(); 
+
+        StringBuilder sb = new StringBuilder();
+        int PASS = 0;
+        int PREPARE = 1;
+        int READ = 2;
+        int mode = PASS;
+
+        // to nullify
+        List<int[]> toNullify = new ArrayList<int[]>();
+        int[] currentNullifyProps = new int[4];
+
+        // Do scan of els and immediately insert value
+        for(int i = 0; i<texts.size(); i++){
+            Object text = texts.get(i);
+            Text textElement = (Text) text;
+            String newVal = "";
+            String v = textElement.getValue();
+//          System.out.println("text: "+v);
+            StringBuilder textSofar = new StringBuilder();
+            int extra = 0;
+            char[] vchars = v.toCharArray();
+            for(int col = 0; col<vchars.length; col++){
+                char c = vchars[col];
+                textSofar.append(c);
+                switch(c){
+                case '$': {
+                    mode=PREPARE;
+                    sb.append(c);
+//                  extra = 0;
+                } break;
+                case '{': {
+                    if(mode==PREPARE){
+                        sb.append(c);
+                        mode=READ;
+                        currentNullifyProps[0]=i;
+                        currentNullifyProps[1]=col+extra-1;
+                        System.out.println("extra-- "+extra);
+                    } else {
+                        if(mode==READ){
+                            // consecutive opening curl found. just read it
+                            // but supposedly throw error
+                            sb = new StringBuilder();
+                            mode=PASS;
+                        }
+                    }
+                } break;
+                case '}': {
+                    if(mode==READ){
+                        mode=PASS;
+                        sb.append(c);
+                        els.add(sb.toString());
+                        newVal +=textSofar.toString()
+                                +(null==values.get(sb.toString())?sb.toString():values.get(sb.toString()));
+                        textSofar = new StringBuilder();
+                        currentNullifyProps[2]=i;
+                        currentNullifyProps[3]=col+extra;
+                        toNullify.add(currentNullifyProps);
+                        currentNullifyProps = new int[4];
+                        extra += sb.toString().length();
+                        sb = new StringBuilder();
+                    } else if(mode==PREPARE){
+                        mode = PASS;
+                        sb = new StringBuilder();
+                    }
+                }
+                default: {
+                    if(mode==READ) sb.append(c);
+                    else if(mode==PREPARE){
+                        mode=PASS;
+                        sb = new StringBuilder();
+                    }
+                }
+                }
+            }
+            newVal +=textSofar.toString();
+            textElement.setValue(newVal);
+        }
+
+        // remove original expressions
+        if(toNullify.size()>0)
+        for(int i = 0; i<texts.size(); i++){
+            if(toNullify.size()==0) break;
+            currentNullifyProps = toNullify.get(0);
+            Object text = texts.get(i);
+            Text textElement = (Text) text;
+            String v = textElement.getValue();
+            StringBuilder nvalSB = new StringBuilder();
+            char[] textChars = v.toCharArray();
+            for(int j = 0; j<textChars.length; j++){
+                char c = textChars[j];
+                if(null==currentNullifyProps) {
+                    nvalSB.append(c);
+                    continue;
+                }
+                // I know 100000 is too much!!! And so what???
+                int floor = currentNullifyProps[0]*100000+currentNullifyProps[1];
+                int ceil = currentNullifyProps[2]*100000+currentNullifyProps[3];
+                int head = i*100000+j;
+                if(!(head>=floor && head<=ceil)){
+                    nvalSB.append(c);
+                } 
+
+                if(j>currentNullifyProps[3] && i>=currentNullifyProps[2]){
+                    toNullify.remove(0);
+                    if(toNullify.size()==0) {
+                        currentNullifyProps = null;
+                        continue;
+                    }
+                    currentNullifyProps = toNullify.get(0);
+                }
+            }
+            textElement.setValue(nvalSB.toString());
+        }
+    }
 	/*
-	 
+	 private void replacePlaceholder(WordprocessingMLPackage template,
+            String name, String placeholder) {
+        List<Object> texts = getAllElementFromObject(
+                template.getMainDocumentPart(), Text.class);
+
+        for (Object text : texts) {
+            Text textElement = (Text) text;
+            if (textElement.getValue().equals(placeholder)) {
+                textElement.setValue(name);
+            }
+        }
+    }
 	  
 	private NodeRef saveWordToPDF(NodeRef parentFolder,String fileName,WordprocessingMLPackage wordMLPackage) {
 
