@@ -31,18 +31,6 @@ import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.ContentAccessor;
 import org.docx4j.wml.Text;
 
-/*
- * Code below is an implementation of different parts, adapted to our specific case. 
- * Starting from 6phere project on Github, that you can find here:
- * https://github.com/6phere/alf-docx4j
- * 
- * Instead of the standard docx4j Variable Replace there's a method from stackoverflow:
- * https://stackoverflow.com/questions/20484722/docx4j-how-to-replace-placeholder-with-value
- * Thanks demotics2002
- * 
- * Other things from Alfresco SDK documentation and docx4j source code.
- */
-
 public class CurrentVersion extends ActionExecuterAbstractBase {
 
 	private ServiceRegistry serviceRegistry;	
@@ -76,8 +64,8 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
 		if (versionHistory != null) {
 			logger.debug("Numero di versioni: " + versionHistory.getAllVersions().size());
-            logger.debug("Ultima versione: " + versionHistory.getRootVersion().getVersionLabel());
-            versione = versionHistory.getRootVersion().getVersionLabel();
+            logger.debug("Ultima versione: " + versionHistory.getHeadVersion().getVersionLabel());
+            versione = versionHistory.getHeadVersion().getVersionLabel();
 		} else {logger.debug("Nodo non versionabile");}
 		return versione;
 	}
