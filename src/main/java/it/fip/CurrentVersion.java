@@ -75,9 +75,10 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
             ChildAssociationRef childAssociationRef = this.serviceRegistry.getNodeService().getPrimaryParent(nodeRef);
             NodeRef parent = childAssociationRef.getParentRef();
             String tempDocxName = getDocumentName(nodeRef)+"_temp.docx";
-            ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
-            createContentNode(parent, tempDocxName, originalDocx);
-            originalDocx.save(writer.getContentOutputStream());
+            //ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
+            WordprocessingMLPackage tempDocx = originalDocx;
+            createContentNode(parent, tempDocxName, tempDocx);
+            //originalDocx.save(writer.getContentOutputStream());
         }
 		catch (Exception e1) {e1.printStackTrace();}
 		
@@ -85,7 +86,9 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 
 	private String getDocumentName(NodeRef nodeRef) {
 		NodeService nodeService = serviceRegistry.getNodeService();
-        return nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
+		String nomeIntero = nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
+        String nome = nomeIntero.split("\\.")[0];
+		return nome;
 	}
 
     private void createContentNode(NodeRef parent, String name, WordprocessingMLPackage oldDocx )
@@ -104,7 +107,7 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 
         // Use the content service to set the content onto the newly created node
         ContentWriter writer = this.serviceRegistry.getContentService().getWriter(node, ContentModel.PROP_CONTENT, true);
-        writer.setMimetype(MimetypeMap.MIMETYPE_WORD);
+        writer.setMimetype(MimetypeMap.MIMETYPE_OPENXML_WORDPROCESSING);
         oldDocx.save(writer.getContentOutputStream());
     }
 	/*
