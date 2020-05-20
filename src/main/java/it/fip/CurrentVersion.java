@@ -75,83 +75,50 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
             ChildAssociationRef childAssociationRef = this.serviceRegistry.getNodeService().getPrimaryParent(nodeRef);
             NodeRef parent = childAssociationRef.getParentRef();
             String tempDocxName = getDocumentName(nodeRef)+"_temp.docx";
-            //ContentWriter writer = this.serviceRegistry.getContentService().getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
-            WordprocessingMLPackage tempDocx = originalDocx;
-            createContentNode(parent, tempDocxName, tempDocx);
-            //originalDocx.save(writer.getContentOutputStream());
+            String pdfName = getDocumentName(nodeRef)+".pdf";
+            NodeRef tempDocxNode = createContentNode(parent, tempDocxName, originalDocx);
+            transformPdfNode(parent, tempDocxNode, pdfName);
         }
 		catch (Exception e1) {e1.printStackTrace();}
-		
     }
 
 	private String getDocumentName(NodeRef nodeRef) {
 		NodeService nodeService = serviceRegistry.getNodeService();
 		String nomeIntero = nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
-        String nome = nomeIntero.split("\\.")[0];
-		return nome;
+		return nomeIntero.split("\\.")[0];
 	}
 
-    private void createContentNode(NodeRef parent, String name, WordprocessingMLPackage oldDocx )
+    private NodeRef createContentNode(NodeRef parent, String name, WordprocessingMLPackage oldDocx )
 			throws Docx4JException {
-        // Create a map to contain the values of the properties of the node
+
         Map<QName, Serializable> props = new HashMap<>(1);
         props.put(ContentModel.PROP_NAME, name);
-
-        // use the node service to create a new node
         NodeRef node = this.serviceRegistry.getNodeService().createNode(
                 parent,
                 ContentModel.ASSOC_CONTAINS,
                 QName.createQName(NamespaceService.CONTENT_MODEL_1_0_URI, name),
                 ContentModel.TYPE_CONTENT,
                 props).getChildRef();
-
-        // Use the content service to set the content onto the newly created node
         ContentWriter writer = this.serviceRegistry.getContentService().getWriter(node, ContentModel.PROP_CONTENT, true);
         writer.setMimetype(MimetypeMap.MIMETYPE_OPENXML_WORDPROCESSING);
         oldDocx.save(writer.getContentOutputStream());
+        return node;
     }
-	/*
 
-	  
-	private NodeRef saveWordToPDF(NodeRef parentFolder,String fileName,WordprocessingMLPackage wordMLPackage) {
+	private void transformPdfNode(NodeRef parent, NodeRef tempNode, String name)
+			throws Docx4JException {
 
-		NodeRef ref = fileFolderService.create(parentFolder, fileName+".pdf", ContentModel.TYPE_CONTENT).getNodeRef();
-		ContentWriter cw = contentService.getWriter(ref, ContentModel.PROP_CONTENT, true);
-		cw.setMimetype(MimetypeMap.MIMETYPE_WORD);
-		try {
-			wordMLPackage.save(cw.getContentOutputStream());
-			return convertWordToPDF (ref);
-		}
-		catch (ContentIOException e) {e.printStackTrace();} 
-		catch (Docx4JException e) {e.printStackTrace();} 
-		return null;
-
+		Map<QName, Serializable> props = new HashMap<>(1);
+		props.put(ContentModel.PROP_NAME, name);
+		NodeRef pdfNode = this.serviceRegistry.getNodeService().createNode(
+				parent,
+				ContentModel.ASSOC_CONTAINS,
+				QName.createQName(NamespaceService.CONTENT_MODEL_1_0_URI, name),
+				ContentModel.TYPE_CONTENT,
+				props).getChildRef();
+		ContentReader tempDocx = this.serviceRegistry.getContentService().getReader(tempNode, ContentModel.PROP_CONTENT);
+		ContentWriter pdfWriter = this.serviceRegistry.getContentService().getWriter(pdfNode, ContentModel.PROP_CONTENT, true);
+		pdfWriter.setMimetype(MimetypeMap.MIMETYPE_PDF);
+		this.serviceRegistry.getContentService().transform(tempDocx, pdfWriter);
 	}
-
-	private NodeRef convertWordToPDF(NodeRef nodeRef) {
-
-		if (contentService.getReader(nodeRef, ContentModel.PROP_CONTENT) == null) return null;
-
-		try {
-			ContentReader cr = contentService.getReader(nodeRef, ContentModel.PROP_CONTENT);
-			ContentWriter cw = contentService.getWriter(nodeRef, ContentModel.PROP_CONTENT, true);
-			cw.setMimetype(MimetypeMap.MIMETYPE_PDF);
-			if (!cr.getMimetype().equals(MimetypeMap.MIMETYPE_PDF)){
-				ContentTransformer ct = contentService.getTransformer(cr.getMimetype(), MimetypeMap.MIMETYPE_PDF);
-				if(ct!=null){
-					ct.transform(cr, cw);
-					return nodeRef;
-				}
-			}
-		}
-		catch (FileExistsException e1) {e1.printStackTrace();}
-		catch(Exception e) {e.printStackTrace();}
-		return null;
-
-	}
-	
-	
-
-    */
-
 }
