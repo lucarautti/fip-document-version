@@ -51,18 +51,12 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		}
 	}
 
-	private String getUltimaVersione(NodeRef versionableNode) {
-
-		String versione ="";
-		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
-		if (versionHistory != null) {
-			logger.debug("Numero di versioni: " + versionHistory.getAllVersions().size());
-            logger.debug("Ultima versione: " + versionHistory.getHeadVersion().getVersionLabel());
-            versione = versionHistory.getHeadVersion().getVersionLabel();
-		} else {logger.debug("Nodo non versionabile");}
-		return versione;
-	}
-
+	
+/*
+ * This is the main method, recalled by the custom action.
+ * With the nodeRef passed in, it executes other custom methods following ths logic:
+ * open original docx --> find the placeholder --> replace it --> save a temp docx --> convert to pdf
+ */
 	private void mainLogic(NodeRef nodeRef) throws ContentIOException, Docx4JException {
 		try {
             ContentReader reader = this.serviceRegistry.getContentService().getReader(nodeRef, ContentModel.PROP_CONTENT);
@@ -78,16 +72,46 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
             String pdfName = getDocumentName(nodeRef)+".pdf";
             NodeRef tempDocxNode = createContentNode(parent, tempDocxName, originalDocx);
             transformPdfNode(parent, tempDocxNode, pdfName);
+            deleteNode(tempDocxNode);
         }
 		catch (Exception e1) {e1.printStackTrace();}
     }
+	
+/*
+* Using the Alfresco VersionService API this method get the latest version
+* given a nodeRef.
+* More info here: https://dev.alfresco.com/resource/docs/java/org/alfresco/service/cmr/version/VersionHistory.html
+* and here: https://docs.alfresco.com/5.2/references/dev-services-version.html
+*/
+	private String getUltimaVersione(NodeRef versionableNode) {
 
+		String versione ="";
+		VersionHistory versionHistory = serviceRegistry.getVersionService().getVersionHistory(versionableNode);
+		if (versionHistory != null) {
+			logger.debug("Numero di versioni: " + versionHistory.getAllVersions().size());
+            logger.debug("Ultima versione: " + versionHistory.getHeadVersion().getVersionLabel());
+            versione = versionHistory.getHeadVersion().getVersionLabel();
+		} else {logger.debug("Nodo non versionabile");}
+		return versione;
+	}
+
+/*
+ * Get the document name given a specific nodeRef, using Alfresco NodeService
+ * and ContentModel property. Splitting before the dot remove the extension.	
+ */
 	private String getDocumentName(NodeRef nodeRef) {
 		NodeService nodeService = serviceRegistry.getNodeService();
 		String nomeIntero = nodeService.getProperty(nodeRef, ContentModel.PROP_NAME).toString();
 		return nomeIntero.split("\\.")[0];
 	}
 
+/*
+ * Create a new node with docx mimetype and save it passing the WordprocessingMLPackage
+ * of the original docx with variable replaced.
+ * This way has been adopted to preserve the original docx, creating a temp one,
+ * so you can start a new workflow with the old docx.
+ * Return the nodeRef of the temp docx created.
+ */
     private NodeRef createContentNode(NodeRef parent, String name, WordprocessingMLPackage oldDocx )
 			throws Docx4JException {
 
@@ -105,9 +129,17 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
         return node;
     }
 
+/*
+ * Same as the previous method.
+ * It performs a check at the beginning, so if a node with the same name exist it
+ * will be deleted.
+ * Then it transform the temp docx to pdf.
+ */
 	private void transformPdfNode(NodeRef parent, NodeRef tempNode, String name)
 			throws Docx4JException {
-
+		
+		NodeRef checkNode = this.serviceRegistry.getNodeService().getChildByName(parent, ContentModel.PROP_NAME, name);
+		if (checkNode != null) {
 		Map<QName, Serializable> props = new HashMap<>(1);
 		props.put(ContentModel.PROP_NAME, name);
 		NodeRef pdfNode = this.serviceRegistry.getNodeService().createNode(
@@ -120,5 +152,11 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		ContentWriter pdfWriter = this.serviceRegistry.getContentService().getWriter(pdfNode, ContentModel.PROP_CONTENT, true);
 		pdfWriter.setMimetype(MimetypeMap.MIMETYPE_PDF);
 		this.serviceRegistry.getContentService().transform(tempDocx, pdfWriter);
+		} else deleteNode(checkNode);
+	}
+	
+	private void deleteNode(NodeRef nodeToDelete) {
+		this.serviceRegistry.getNodeService().addAspect(nodeToDelete, ContentModel.ASPECT_TEMPORARY, null);
+		this.serviceRegistry.getNodeService().deleteNode(nodeToDelete);
 	}
 }
