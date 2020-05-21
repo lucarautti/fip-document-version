@@ -140,19 +140,21 @@ public class CurrentVersion extends ActionExecuterAbstractBase {
 		
 		NodeRef checkNode = this.serviceRegistry.getNodeService().getChildByName(parent, ContentModel.PROP_NAME, name);
 		if (checkNode != null) {
-		Map<QName, Serializable> props = new HashMap<>(1);
-		props.put(ContentModel.PROP_NAME, name);
-		NodeRef pdfNode = this.serviceRegistry.getNodeService().createNode(
-				parent,
-				ContentModel.ASSOC_CONTAINS,
-				QName.createQName(NamespaceService.CONTENT_MODEL_1_0_URI, name),
-				ContentModel.TYPE_CONTENT,
-				props).getChildRef();
-		ContentReader tempDocx = this.serviceRegistry.getContentService().getReader(tempNode, ContentModel.PROP_CONTENT);
-		ContentWriter pdfWriter = this.serviceRegistry.getContentService().getWriter(pdfNode, ContentModel.PROP_CONTENT, true);
-		pdfWriter.setMimetype(MimetypeMap.MIMETYPE_PDF);
-		this.serviceRegistry.getContentService().transform(tempDocx, pdfWriter);
-		} else deleteNode(checkNode);
+			deleteNode(checkNode);
+		} else {
+			Map<QName, Serializable> props = new HashMap<>(1);
+			props.put(ContentModel.PROP_NAME, name);
+			NodeRef pdfNode = this.serviceRegistry.getNodeService().createNode(
+					parent,
+					ContentModel.ASSOC_CONTAINS,
+					QName.createQName(NamespaceService.CONTENT_MODEL_1_0_URI, name),
+					ContentModel.TYPE_CONTENT,
+					props).getChildRef();
+			ContentReader tempDocx = this.serviceRegistry.getContentService().getReader(tempNode, ContentModel.PROP_CONTENT);
+			ContentWriter pdfWriter = this.serviceRegistry.getContentService().getWriter(pdfNode, ContentModel.PROP_CONTENT, true);
+			pdfWriter.setMimetype(MimetypeMap.MIMETYPE_PDF);
+			this.serviceRegistry.getContentService().transform(tempDocx, pdfWriter);
+		}
 	}
 	
 	private void deleteNode(NodeRef nodeToDelete) {
